@@ -18,6 +18,7 @@ const App: React.FC = () => {
   const fetchStocks = async () => {
     try {
       const apiKey = process.env.REACT_APP_FINNHUB_API_KEY;
+      console.log('Finnhub API Key:', apiKey);
       const response = await axios.get(`https://finnhub.io/api/v1/stock/symbol?exchange=US&token=${apiKey}`);
       const stockSymbols = response.data.slice(0, 30); // Fetching only 30 stocks for simplicity
 
