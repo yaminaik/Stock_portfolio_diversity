@@ -1,7 +1,7 @@
 // src/App.tsx
 import React, { useState , useEffect } from 'react';
 import axios from 'axios';
-import { Container, Typography, Button, List, ListItem, ListItemText, AppBar, Toolbar, Box ,Grid, Paper} from '@mui/material';
+import { Container, Typography, Button, List, ListItem, ListItemText, AppBar, Toolbar, Box ,Grid, Paper, Alert, CircularProgress} from '@mui/material';
 
 interface Stock {
   symbol: string;
@@ -12,13 +12,21 @@ interface Stock {
 const App: React.FC = () => {
   const [stocks, setStocks] = useState<Stock[]>([]);
   const [portfolio, setPortfolio] = useState<Stock[]>([]);
-  const [fetched, setFetched] = useState(false);
   const [diversityScore, setDiversityScore] = useState(0);
+  const [loading, setLoading] = useState(false); // Add loading state
+  const [error, setError] = useState<string | null>(null); // Add error state
 
   const fetchStocks = async () => {
     try {
+      setLoading(true); // Set loading to true before starting the fetch
+      setError(null); 
       const apiKey = process.env.REACT_APP_FINNHUB_API_KEY;
       console.log('Finnhub API Key:', apiKey);
+
+      if (!apiKey) {
+        throw new Error('API key is not defined');
+      }
+
       const response = await axios.get(`https://finnhub.io/api/v1/stock/symbol?exchange=US&token=${apiKey}`);
       const stockSymbols = response.data.slice(0, 30); // Fetching only 30 stocks for simplicity
 
@@ -34,10 +42,18 @@ const App: React.FC = () => {
       }));
 
       setStocks(stockDetails);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error fetching stock data:', error);
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('An unknown error occurred');
+      }
+    } finally {
+      setLoading(false); // Set loading to false after fetch completes
     }
   };
+
 
   const addToPortfolio = (stock: Stock) => {
     setPortfolio([...portfolio, stock]);
@@ -78,7 +94,19 @@ const App: React.FC = () => {
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
             <Typography variant="h4" gutterBottom>Stocks List</Typography>
-            <Button variant="contained" color="primary" onClick={fetchStocks} disabled={fetched}>Fetch Stocks</Button>
+            <Button variant="contained" color="primary" onClick={fetchStocks} disabled={loading}>
+              {loading ? <CircularProgress size={24} /> : 'Fetch Stocks'}
+            </Button>
+            {loading && (
+              <Box display="flex" justifyContent="center" my={2}>
+                <CircularProgress />
+              </Box>
+            )}
+            {error && (
+              <Box my={2}>
+                <Alert severity="error">{error}</Alert>
+              </Box>
+            )}
             <List>
               {stocks.map(stock => (
                 <ListItem key={stock.symbol}>
